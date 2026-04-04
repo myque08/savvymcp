@@ -1,0 +1,24 @@
+{
+  "name": "@savvyscratch/mcp-server",
+  "version": "1.0.0",
+  "description": "MCP server for Savvy Scratch — scratch-off lottery game analysis powered by pro gambler methodology",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "savvyscratch-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@supabase/supabase-js": "^2.48.1",
+    "stripe": "^22.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "typescript": "^5.7.3"
+  }
+}
