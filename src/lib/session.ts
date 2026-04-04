@@ -1,5 +1,5 @@
 import { McpSession } from "./types.js";
-import { getSupabaseAdmin } from "./supabase.js";
+import { getSupabaseClient } from "./supabase.js";
 
 /**
  * In-memory session for the current MCP connection.
@@ -30,21 +30,36 @@ export function clearSession(): void {
   };
 }
 
+/**
+ * Refreshes subscription status using the user's own auth session.
+ * Calls getUser() which returns the user's metadata including subscription info.
+ */
 export async function refreshSubscriptionStatus(): Promise<boolean> {
-  if (!currentSession.userId) return false;
+  if (!currentSession.accessToken) return false;
 
-  const supabase = getSupabaseAdmin();
-  const { data, error } = await supabase.auth.admin.getUserById(
-    currentSession.userId
-  );
+  const supabase = getSupabaseClient();
 
-  if (error || !data?.user) return false;
+  // Set the session so getUser() returns the current user's data
+  await supabase.auth.setSession({
+    access_token: currentSession.accessToken,
+    refresh_token: "",
+  });
 
-  const subscription = data.user.app_metadata?.subscription;
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser(currentSession.accessToken);
+
+  if (error || !user) return false;
+
+  const subscription = user.app_metadata?.subscription;
   if (!subscription) {
     currentSession.isSubscribed = false;
     return false;
   }
+
+  // Store subscription details for later use
+  currentSession.subscriptionDetails = subscription;
 
   const now = Math.floor(Date.now() / 1000);
   const isActive =

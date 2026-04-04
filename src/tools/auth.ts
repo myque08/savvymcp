@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import Stripe from "stripe";
-import { getSupabaseAdmin } from "../lib/supabase.js";
+import { getSupabaseClient } from "../lib/supabase.js";
 import {
   getSession,
   setSession,
@@ -9,14 +8,7 @@ import {
   refreshSubscriptionStatus,
 } from "../lib/session.js";
 
-const APP_DOMAIN = () =>
-  process.env.SAVVYSCRATCH_DOMAIN || "https://www.savvyscratch.com";
-
-function getStripe(): Stripe {
-  const key = process.env.STRIPE_SECRET_KEY;
-  if (!key) throw new Error("Missing STRIPE_SECRET_KEY environment variable");
-  return new Stripe(key);
-}
+const APP_DOMAIN = "https://www.savvyscratch.com";
 
 export function registerAuthTools(server: McpServer): void {
   // --- register ---
@@ -31,7 +23,7 @@ export function registerAuthTools(server: McpServer): void {
         .describe("Choose a password (minimum 6 characters)"),
     },
     async ({ email, password }) => {
-      const supabase = getSupabaseAdmin();
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -96,9 +88,7 @@ export function registerAuthTools(server: McpServer): void {
       password: z.string().describe("Your password"),
     },
     async ({ email, password }) => {
-      const supabase = getSupabaseAdmin();
-
-      // Use admin to verify credentials, then create a session
+      const supabase = getSupabaseClient();
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -160,12 +150,7 @@ export function registerAuthTools(server: McpServer): void {
 
       await refreshSubscriptionStatus();
 
-      // Fetch full subscription details
-      const supabase = getSupabaseAdmin();
-      const { data } = await supabase.auth.admin.getUserById(session.userId);
-      const subscription = data?.user?.app_metadata?.subscription;
-
-      if (!subscription || !session.isSubscribed) {
+      if (!session.subscriptionDetails || !session.isSubscribed) {
         return {
           content: [
             {
@@ -186,6 +171,7 @@ export function registerAuthTools(server: McpServer): void {
         };
       }
 
+      const subscription = session.subscriptionDetails;
       const endDate = new Date(
         subscription.subscribedTillDate * 1000
       ).toLocaleDateString("en-US", {
@@ -194,7 +180,9 @@ export function registerAuthTools(server: McpServer): void {
         day: "numeric",
       });
       const planType =
-        subscription.subType === "month" ? "Monthly ($5/mo)" : "Yearly ($50/yr)";
+        subscription.subType === "month"
+          ? "Monthly ($5/mo)"
+          : "Yearly ($50/yr)";
       const renewalStatus = subscription.endsOn
         ? "Cancels at end of period"
         : "Auto-renews";
@@ -219,7 +207,7 @@ export function registerAuthTools(server: McpServer): void {
   // --- get_subscribe_link ---
   server.tool(
     "get_subscribe_link",
-    "Get a direct Stripe checkout link to subscribe to Savvy Scratch. Choose monthly ($5/mo) or yearly ($50/yr — save 17%).",
+    "Get a link to subscribe to Savvy Scratch. Choose monthly ($5/mo) or yearly ($50/yr — save 17%).",
     {
       plan: z
         .enum(["monthly", "yearly"])
@@ -228,7 +216,6 @@ export function registerAuthTools(server: McpServer): void {
     },
     async ({ plan }) => {
       const session = getSession();
-      const domain = APP_DOMAIN();
 
       if (!session.accessToken || !session.email) {
         return {
@@ -238,54 +225,13 @@ export function registerAuthTools(server: McpServer): void {
               text: [
                 "You need an account first before subscribing.",
                 "",
-                `1. **Register:** Use the \`register\` tool to create an account`,
-                `2. **Then subscribe:** Run \`get_subscribe_link\` again after logging in`,
+                "1. **Register:** Use the `register` tool to create an account",
+                "2. **Then subscribe:** Run `get_subscribe_link` again after logging in",
               ].join("\n"),
             },
           ],
         };
       }
-
-      const stripe = getStripe();
-      const email = session.email;
-
-      // Find or reference the Stripe customer
-      const customerSearch = await stripe.customers.search({
-        query: `email:'${email}'`,
-      });
-
-      let customerInfo: { customer_email: string } | { customer: string };
-      if (customerSearch.data.length === 0) {
-        customerInfo = { customer_email: email };
-      } else {
-        customerInfo = { customer: customerSearch.data[0].id };
-      }
-
-      // Determine price ID
-      const priceId =
-        plan === "monthly"
-          ? process.env.STRIPE_MONTHLY_PRICE_ID
-          : process.env.STRIPE_YEARLY_PRICE_ID;
-
-      if (!priceId) {
-        return {
-          content: [
-            {
-              type: "text" as const,
-              text: `The ${plan} plan is not configured. Please try the other plan or subscribe at ${domain}/subscribe.`,
-            },
-          ],
-        };
-      }
-
-      const checkoutSession = await stripe.checkout.sessions.create({
-        success_url: `${domain}/success?tier=${plan}&amount=${plan === "monthly" ? "5.00" : "50.00"}`,
-        cancel_url: `${domain}/cancel`,
-        allow_promotion_codes: true,
-        line_items: [{ price: priceId, quantity: 1 }],
-        mode: "subscription",
-        ...customerInfo,
-      });
 
       const price = plan === "monthly" ? "$5/month" : "$50/year (save 17%)";
 
@@ -296,7 +242,7 @@ export function registerAuthTools(server: McpServer): void {
             text: [
               `Subscribe to Savvy Scratch — ${price}`,
               "",
-              `Checkout here: ${checkoutSession.url}`,
+              `Complete your subscription here: ${APP_DOMAIN}/subscribe`,
               "",
               "What you get:",
               "- Full game data for all 19 states",

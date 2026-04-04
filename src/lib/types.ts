@@ -36,9 +36,21 @@ export interface State {
   display_name: string;
 }
 
+export interface SubscriptionDetails {
+  subscriptionId: string;
+  store: "stripe" | "google-play" | "apple-store";
+  subType: "day" | "week" | "month" | "year" | "Unknown";
+  periodType: "NORMAL" | "PAUSED" | "TRIAL" | "INTRO";
+  subscribedTillDate: number;
+  endsOn: boolean;
+  daysUntilDue: number | null;
+  referredBy: string | null;
+}
+
 export interface McpSession {
   accessToken: string | null;
   userId: string | null;
   email: string | null;
   isSubscribed: boolean;
+  subscriptionDetails?: SubscriptionDetails | null;
 }

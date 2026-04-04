@@ -14,8 +14,7 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",
-    "@supabase/supabase-js": "^2.48.1",
-    "stripe": "^22.0.0"
+    "@supabase/supabase-js": "^2.48.1"
   },
   "devDependencies": {
     "@types/node": "^20",

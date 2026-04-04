@@ -2,7 +2,9 @@
 
 An MCP (Model Context Protocol) server that lets AI assistants access Savvy Scratch scratch-off lottery game analysis.
 
-Users can register, log in, browse game data, and subscribe — all through natural language conversation with their AI.
+Register, log in, browse game data, and subscribe — all through natural conversation with your AI.
+
+**Zero configuration required.** Just install and go.
 
 ## Tools
 
@@ -13,7 +15,7 @@ Users can register, log in, browse game data, and subscribe — all through natu
 | `login` | Sign in with email and password |
 | `logout` | Sign out |
 | `check_subscription` | View subscription status and plan details |
-| `get_subscribe_link` | Get a Stripe checkout link to subscribe |
+| `get_subscribe_link` | Get a link to subscribe |
 
 ### Game Analysis
 | Tool | Description | Free | Subscriber |
@@ -23,28 +25,9 @@ Users can register, log in, browse game data, and subscribe — all through natu
 | `game_details` | Detailed prize breakdown for a game | Locked | Full |
 | `best_games` | Best games for a budget and state | Top 3 | All matches |
 
-## Setup
+## Install
 
-### 1. Environment Variables
-
-Create a `.env` file:
-
-```env
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-SUPABASE_ANON_KEY=your-anon-key
-SAVVYSCRATCH_DOMAIN=https://www.savvyscratch.com
-```
-
-### 2. Build
-
-```bash
-cd mcp-server
-npm install
-npm run build
-```
-
-### 3. Configure in Claude Desktop
+### Claude Desktop
 
 Add to your `claude_desktop_config.json`:
 
@@ -52,20 +35,14 @@ Add to your `claude_desktop_config.json`:
 {
   "mcpServers": {
     "savvyscratch": {
-      "command": "node",
-      "args": ["path/to/mcp-server/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key",
-        "SUPABASE_ANON_KEY": "your-anon-key",
-        "SAVVYSCRATCH_DOMAIN": "https://www.savvyscratch.com"
-      }
+      "command": "npx",
+      "args": ["-y", "@savvyscratch/mcp-server"]
     }
   }
 }
 ```
 
-### 4. Configure in Claude Code
+### Claude Code
 
 Add to your `.mcp.json`:
 
@@ -73,47 +50,39 @@ Add to your `.mcp.json`:
 {
   "mcpServers": {
     "savvyscratch": {
-      "command": "node",
-      "args": ["path/to/mcp-server/dist/index.js"],
-      "env": {
-        "SUPABASE_URL": "https://your-project.supabase.co",
-        "SUPABASE_SERVICE_ROLE_KEY": "your-service-role-key",
-        "SUPABASE_ANON_KEY": "your-anon-key"
-      }
+      "command": "npx",
+      "args": ["-y", "@savvyscratch/mcp-server"]
     }
   }
 }
 ```
 
+### Build from source
+
+```bash
+git clone https://github.com/myque08/savvymcp.git
+cd savvymcp
+npm install
+npm run build
+node dist/index.js
+```
+
 ## Example Conversation
 
 ```
-User: What scratch-off games are available in Texas?
-AI: [calls login, then get_games with state=TX]
+User: What scratch-off games should I play in Florida?
+
+AI: [calls login, then get_games with state=fl]
     Shows top 3 games with scores and odds...
-    "Subscribe to see all 47 games. Use get_subscribe_link for checkout."
+    "Subscribe to see all 100 games. Use get_subscribe_link to get started."
 
-User: I want to subscribe yearly
-AI: [calls get_subscribe_link with plan=yearly]
-    "Here's your checkout link: https://www.savvyscratch.com/subscribe"
+User: I have $10 to spend in Georgia, what's best?
 
-User: OK I subscribed. What are the best $5 games in Florida?
-AI: [calls best_games with state=FL, budget=5]
-    Shows all matching games ranked by weighted score with full details
+AI: [calls best_games with state=ga, budget=10]
+    Shows top-rated games at $10 or under ranked by weighted score
+
+User: Show me the prize breakdown for Atlanta Falcons
+
+AI: [calls game_details with state=ga, game_name="Atlanta Falcons"]
+    Full prize tier breakdown with remaining prizes and adjusted odds
 ```
-
-## Architecture
-
-```
-MCP Client (Claude Desktop / Claude Code)
-    |
-    | stdio (MCP protocol)
-    |
-MCP Server (this package)
-    |
-    |-- Supabase Auth (register/login/subscription check)
-    |-- Supabase Edge Functions (game data)
-    |-- Stripe (via web app redirect for checkout)
-```
-
-The server authenticates users through Supabase, checks subscription status from user metadata, and fetches game data from the same edge functions the web app uses. Subscription checkout redirects to the Savvy Scratch website where Stripe handles payment.

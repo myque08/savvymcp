@@ -1,9 +1,9 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { getSession, refreshSubscriptionStatus } from "../lib/session.js";
+import { SUPABASE_URL } from "../lib/supabase.js";
 import { GameEvaluation, GameInfo, State } from "../lib/types.js";
 
-const SUPABASE_URL = () => process.env.SUPABASE_URL!;
 const FREE_GAME_LIMIT = 3;
 
 async function fetchGames(
@@ -11,7 +11,7 @@ async function fetchGames(
   accessToken: string
 ): Promise<GameInfo[]> {
   const res = await fetch(
-    `${SUPABASE_URL()}/functions/v1/games?state=${stateCode}`,
+    `${SUPABASE_URL}/functions/v1/games?state=${stateCode}`,
     {
       headers: { Authorization: `Bearer ${accessToken}` },
     }
@@ -21,7 +21,7 @@ async function fetchGames(
 }
 
 async function fetchStates(accessToken: string): Promise<State[]> {
-  const res = await fetch(`${SUPABASE_URL()}/functions/v1/states`, {
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/states`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
   if (!res.ok) throw new Error(`Failed to fetch states: ${res.statusText}`);
