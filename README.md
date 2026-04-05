@@ -2,11 +2,7 @@
 
 [![npm version](https://img.shields.io/npm/v/@savvyscratch/mcp-server)](https://www.npmjs.com/package/@savvyscratch/mcp-server)
 
-An MCP (Model Context Protocol) server that gives AI assistants access to [Savvy Scratch](https://www.savvyscratch.com) — pro-gambler-grade analysis of scratch-off lottery games across 19 U.S. states.
-
-Register, sign in, browse live game data, and subscribe — all through natural conversation with your AI. **Zero configuration required.**
-
-## Quick Start
+## Install
 
 ### Claude Desktop
 
@@ -51,6 +47,12 @@ Any client that supports stdio MCP servers can run:
 ```bash
 npx -y @savvyscratch/mcp-server
 ```
+
+## What is this?
+
+An MCP (Model Context Protocol) server that gives AI assistants access to [Savvy Scratch](https://www.savvyscratch.com) — pro-gambler-grade analysis of scratch-off lottery games across 19 U.S. states.
+
+Register, sign in, browse live game data, and subscribe — all through natural conversation with your AI. **Zero configuration required.**
 
 ## First-time setup (through your AI)
 
